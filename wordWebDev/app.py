@@ -1,10 +1,13 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
+import random
+import pandas as pd
+import numpy as np
 
 app = Flask(__name__)
 
-@app.route('/')
+@app.oute('/')
 def index():
-    return render_template('index.html')
+    return render_template('test.html')
 
 @app.route('/test')
 def test():
