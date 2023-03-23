@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Red Herring</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f1f1f1;
+      }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #fff;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      .start-button {
+        padding: 10px 20px;
+        font-size: 20px;
+        font-weight: bold;
+        color: #fff;
+        background-color: #f00;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.2s ease-in-out;
+      }
+      .start-button:hover {
+        background-color: #c00;
+      }
+      .timer {
+        font-size: 40px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        grid-gap: 20px;
+        margin-bottom: 20px;
+      }
+      .square {
+        width: 100%;
+        height: 0;
+        padding-bottom: 20%;
+        position: relative;
+        background-color: #ccc;
+        border: 2px solid #999;
+        border-radius: 5px;
+      }
+      .square-content {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 30px;
+        font-weight: bold;
+      }
+      .word-list {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+      .word {
+        padding: 10px;
+        margin-bottom: 10px;
+        background-color: #fff;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        border-radius: 5px;
+        cursor: move;
+        user-select: none;
+      }
+      .word.placeholder {
+        opacity: 0.5;
+        background-color: #ccc;
+      }
+      .word.dragging {
+        opacity: 0.5;
+      }
+      .word.revealed {
+        filter: blur(0);
+      }
+      .word.hidden {
+        filter: blur(3px);
+      }
+      .submit-button {
+        padding: 10px 20px;
+        font-size: 20px;
+        font-weight: bold;
+        color: #fff;
+        background-color: #f00;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.2s ease-in-out;
+        float: right;
+      }
+      .submit-button:hover {
+        background-color: #c00;
+      }
+      .category {
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+      }
+      .time-label {
+        font-size: 30px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div>
+          <h1>Red Herring</h1>
+            <p>Drag the words into the boxes according to their categories.</p>
+            <p>Words that do not fit into a category are red herrings.</p>
+            <p> Use each word exactly once.</p>
+        </div>
+        <button class="start-button">Start</button>
+        <div class="timer hidden">
+          <span class="time-label">00:00</span>
+        </div>
+      </div>
+        
+        {% for i in range(3) %}
+            <center> Category {{i+1}} </center>
+            <div class="grid">
+                {% for _ in range(4) %}
+                    <div class="square"></div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+
+        <center> Red Herrings </center>
+        <div class="grid">
+            {% for _ in range(4) %}
+                <div class="square"></div>
+            {% endfor %}
+        </div>
+        
+        
+      <div class="word-list">
+        {% for word in words %}
+        <div class="word hidden">{{ word }}</div>
+        {% endfor %}
+      </div>
+        
+      <button class="submit-button hidden">Submit</button>
+      <form id="form" method="POST" action="{{ url_for('submit') }}" class="hidden">
+
+
+       {% for i in range(4) %}
+        <div class="row">
+          {% for j in range(4) %}
+          <input type="hidden" name="placement" value= "{{4*i+j}}">
+          {% endfor %}
+        </div>
+        {% endfor %}
+
+        <input type="hidden" name="elapsed_time" value="">
+      </form>
+    </div>
+    <script>
+      var startButton = document.querySelector('.start-button');
+      var timer = document.querySelector('.timer');
+      var wordList = document.querySelector('.word-list');
+      var words = wordList.querySelectorAll('.word');
+      var squares = document.querySelectorAll('.square');
+      var submitButton = document.querySelector('.submit-button');
+      var form = document.querySelector('#form');
+      var placements = [];
+
+      
+      
+                                              
+        var time = 0;
+        var minutes = 0;
+        var seconds = 0;
+        var timerInterval;
+
+        function startTimer() {
+          timerInterval = setInterval(function() {
+            time++;
+            minutes = Math.floor(time / 60);
+            seconds = time % 60;
+            timer.querySelector('.time-label').textContent = ('00' + minutes).slice(-2) + ':' + ('00' + seconds).slice(-2);
+          }, 1000);
+        }
+
+        function stopTimer() {
+          clearInterval(timerInterval);
+        }
+
+        function revealWords() {
+          wordList.classList.remove('hidden');
+          submitButton.classList.remove('hidden');
+          words.forEach(function(word) {
+            word.classList.remove('hidden');
+            word.classList.add('revealed');
+          });
+        }
+
+        function onWordDragStart(event) {
+          event.dataTransfer.setData('text/plain', event.target.textContent);
+          event.target.classList.add('dragging');
+        }
+
+        function onWordDragEnd(event) {
+          event.target.classList.remove('dragging');
+        }
+
+        function onSquareDragEnter(event) {
+          event.preventDefault();
+          event.target.classList.add('placeholder');
+        }
+
+        function onSquareDragOver(event) {
+          event.preventDefault();
+        }
+
+        function onSquareDragLeave(event) {
+          event.target.classList.remove('placeholder');
+        }
+
+        function onSquareDrop(event) {
+          event.preventDefault();
+          var word = event.dataTransfer.getData('text/plain');
+          var square = event.target;
+          var index = Array.from(squares).indexOf(square);
+          square.textContent = word;
+          wordList.querySelectorAll('.word').forEach(function(word) {
+            if (word.textContent === square.textContent) {
+              word.classList.add('hidden');
+            }
+          });
+          categories[Math.floor(index / 4)][index % 4] = word;
+        }
+
+        function onSubmit(event) {
+          event.preventDefault();
+          var elapsedMinutes = minutes;
+          var elapsedSeconds = seconds;
+          stopTimer();
+          submitButton.disabled = true;
+          form.elements['elapsed_time'].value = elapsedMinutes + ':' + ('00' + elapsedSeconds).slice(-2);
+          form.submit();
+        }
+
+        startButton.addEventListener('click', function() {
+          startButton.classList.add('hidden');
+          timer.classList.remove('hidden');
+          wordList.classList.remove('hidden');
+          squares.forEach(function(square) {
+            square.classList.add('placeholder');
+            square.addEventListener('dragenter', onSquareDragEnter);
+            square.addEventListener('dragover', onSquareDragOver);
+            square.addEventListener('dragleave', onSquareDragLeave);
+            square.addEventListener('drop', onSquareDrop);
+          });
+          words.forEach(function(word) {
+            word.setAttribute('draggable', 'true');
+            word.addEventListener('dragstart', onWordDragStart);
+            word.addEventListener('dragend', onWordDragEnd);
+          });
+          revealWords();
+          startTimer();
+        });
+
+        submitButton.addEventListener('click', onSubmit);
+
+    </script>
+  </body>
+</html>
+
