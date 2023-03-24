@@ -155,8 +155,10 @@
         
         
       <div class="word-list">
-        {% for word in words %}
+        {% for list in words %}
+        {% for word in list %}
         <div class="word hidden">{{ word }}</div>
+        {% endfor %}
         {% endfor %}
       </div>
         
