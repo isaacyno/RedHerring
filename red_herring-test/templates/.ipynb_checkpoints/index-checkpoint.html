@@ -162,16 +162,9 @@
         
       <button class="submit-button hidden">Submit</button>
       <form id="form" method="POST" action="{{ url_for('submit') }}" class="hidden">
+        
 
-
-       {% for i in range(4) %}
-        <div class="row">
-          {% for j in range(4) %}
-          <input type="hidden" name="placement" value= "{{4*i+j}}">
-          {% endfor %}
-        </div>
-        {% endfor %}
-
+        <input type="hidden" name="placement" value="">
         <input type="hidden" name="elapsed_time" value="">
       </form>
     </div>
@@ -183,7 +176,7 @@
       var squares = document.querySelectorAll('.square');
       var submitButton = document.querySelector('.submit-button');
       var form = document.querySelector('#form');
-      var placements = [];
+      <!--var placements = [];-->
 
       
       
@@ -248,7 +241,7 @@
               word.classList.add('hidden');
             }
           });
-          categories[Math.floor(index / 4)][index % 4] = word;
+          <!--categories[Math.floor(index / 4)][index % 4] = word;-->
         }
 
         function onSubmit(event) {
@@ -286,4 +279,3 @@
     </script>
   </body>
 </html>
-
