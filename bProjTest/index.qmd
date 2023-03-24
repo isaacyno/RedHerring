@@ -1,0 +1,146 @@
+---
+title: "Red Herring Project"
+author: "Marc Andrew Choi, Isaac No, Derrick Chau"
+date: "2023-03-24"
+categories: [spacy, natural language processing, ui, project]
+---
+# Introduction
+In this blog post, we will be recreating the game *Red Herring*, which is found on the App Store and Google Play. The objective of the game is to split 16 predetermined words into 3 hidden categories (each with four words) with the final four words being red herrings, i.e., words meant to trick the player that do not belong to any category. To complete this project, we will take advantage of a variety of technical components: natural language processing, SQL queries, web application with flask to create an interactive GUI, and webscraping. You can find a link to our GitHub repository [here](https://github.com/marcandrew-choi/pic16bproj).
+
+# Webscraping words
+As with most projects, we must first import necessary package. First, we need a list of words to play our game. Let us create a python file named `words_dictionary`, where we will import scrapy to assist in our webscraping. We will webscrape a site that contains the most common 3000 words in the English language.
+
+```
+import scrapy
+
+class wordsForGame(scrapy.Spider):
+    name = 'words_bank'
+    
+    start_urls = ['https://www.ef.edu/english-resources/english-vocabulary/top-3000-words/']
+    
+    def parse(self, response):
+        
+        temp = response.css('div.field-item.even') # focus only on the part of site that holds the words
+        wordList = temp.css('p::text').getall()
+        wordList.remove('a')
+        for word in wordList:
+            yield{"word" : word}
+```
+
+We're not going to show the list of words here because displaying 3000 words here would be insane, but we placed all of our words in a csv file called `words.csv`.
+
+# Finding similarity of words
+Let us create a python file named `wordSeparation.py`. We will need to import more packages that will help us with our next task. These packages include pandas and numpy, which will allow us to manipulate our data, as well as spacy, which will help us calculate the similarity scores of our words so that we can use these to create our word groups and categories for the game.
+
+```{python}
+import spacy
+import pandas as pd
+import numpy as np
+import spacy
+import spacy.cli
+spacy.cli.download("en_core_web_lg")
+```
+
+We also need to import nltk as well as its accompanying downloads, which will handle our natural language processing requirements.
+
+```{python{}
+import nltk
+nltk.download('wordnet')
+nltk.download('omw-1.4')
+nltk.download('abc')
+```
+
+Let's test this out to see if our similarity scores. 
+
+```
+nlp = spacy.load('en_core_web_lg')  
+print("Enter two space-separated words")
+words = input()
+tokens = nlp(words)
+  
+for token in tokens:
+    print(token.text, token.has_vector, token.vector_norm, token.is_oov)
+  
+token1, token2 = tokens[0], tokens[1]
+print("Similarity:", token1.similarity(token2))
+```
+
+![](similarwords.png)
+
+As we can see, our two words--dog and cat--have a fairly high similarity score of 82%, which makes sense as they are both seen as pets, but they are different animals.
+
+Now that we know that this words correctly, let's now read our previous csv file to find the similarities between a random subset of words. 
+
+```{python}
+df = pd.read_csv("words.csv")
+n = 600
+df2 = df.sample(n)
+df2.index = range(n)
+dict2 = df2.to_dict('dict')
+df2
+```
+
+With this, we will create an nxn array that will display the similarity score between one word and all of the other words in the list.
+
+```
+nlp = spacy.load('en_core_web_lg')
+
+A = np.empty((n, n))
+
+i = 0
+j = 0
+for word1 in df2["word"]:
+    j = 0
+    for word2 in df2["word"]:
+        wordComp = word1 + " " + word2
+        tokens = nlp(wordComp)
+        token1, token2 = tokens[0], tokens[1]
+        A[i,j] = token1.similarity(token2)
+        j += 1
+    i += 1
+A
+```
+
+![](similarityarray.png)
+
+The 1.0 represents the word that is being compared on its similarity with other words, where as the other numbers in each row represents the similarity between the previously specified word and the other words in this list. Our idea is, based on this array that we just found, a row of words that share high similarity scores amongst the words, and one of the top 5 words will indicate the category, while the other four words in these top 5 similarity scores will be the words to be appropriately placed in this category.
+
+```
+catagory_array = np.empty((n, cat_size), dtype=object)
+word_index = []
+for i in range(n):
+  status = True
+  for j in range(cat_size):
+    catagory_array[i][j] = df2["word"][highest_indices[i][j]]
+    if catagory_array[i][j] == df2["word"][i]:
+      word_index.append(df2["word"][i])
+      status = False
+  if status:
+    print(i)
+cats = pd.DataFrame(catagory_array)
+cats.index = word_index
+print(df2["word"][23])
+print(catagory_array[23])
+cats
+```
+
+![](testcategories.png)
+
+As we see, the bolded words on the left (first column) represent the categories. If we look at 'many', we can see that there includes words such as 'majority', 'plenty', and 'often' which are similar words to its respective category, and we can use this as a category for our game.
+
+# Creating the user interface
+We will now begin our process to create our user interface. As with most projects, we must first import necessary packages into a python file named `app.py`. These packages are Flask, which will help us with the web development. We must also not forget to set `app = Flask(__name__)` so that we can properly initialization our application.
+
+```
+from flask import Flask, render_template, request
+import random
+import pandas as pd
+import numpy as np
+
+app = Flask(__name__)
+
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+# Building the base.html template
