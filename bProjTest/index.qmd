@@ -218,7 +218,6 @@ The first block of code is written to display the instructions for our game so t
       var squares = document.querySelectorAll('.square');
       var submitButton = document.querySelector('.submit-button');
       var form = document.querySelector('#form');
-      <!--var placements = [];-->
 
       
       
@@ -322,6 +321,10 @@ The first block of code is written to display the instructions for our game so t
 ```
 
 This is an incredibly long block of code, so allow us to summarize what is going on here. To actually play the game, the player needs to move the words into appropriate categories, so we are writing code that allows these words to be draggable and place it into a box that is for a category. Once a player uses a word, the word is then blurred out so that it cannot be used again. Additionally, we added code so that a timer can be displayed as the user plays the game, which starts and stops accordingly when pressing the `start` and `submit` buttons. Additionally, we make sure that the words are hidden until the player presses the start button so that the user does not get an unfair advantage when playing the game. This essentially summarizes what we are attempting to accomplish with `index.html`, but we also include the customization of our web application.
+
+On a deeper level, we can explain a bit more of what is going on in the Javascript code. Some of the functionality could be done using a Python library called BeautifulSoup but BeautifulSoup is not compatible with a lot of the Javascript functions here which we included to improve the user experience such as the ability to drag. In the beginning, we have global variables that correspond to each of the major components of the game. We will be editing the functionality of this throughout our javascript. The first function is `startTimer()`. This function creates a time delay interval of one second and displays the running clock of the game. The next function is `stopTimer()` which ends this procedure. Initially, our words are blurred to the user. Upon pressing the start button, the words get deblurred. This is because we do not want our users to have a competitive advantage and cheat the game. `revealWords()` does this deblurring by removing the hidden class to our words which has the CSS properties to blur the text. The next few functions in Javascript allow the words to be dragged by adding and removing classes to each of the word divs. These classes have CSS properties that change the look of the word box when it is being dragged. The next major function is `onSquareDrop()` which transfers the word from the div into one of the 16 boxes (which ever it is hovered over and deselected). Next, we have `onSubmit()` which is the script that runs when the submit button is selected. This stops the timer and redirects us to the submit page. Finally, we have a bunch of addEventListeners which adds functionality to components of the page (such as buttons, dragging, clicking, etc)
+
+
 
 # Customizing our app
 To make sure our interface is not entirely boring or dull, we also included various stylistic choices to add more color and personality to our website. This was included at the beginning of our `index.html` file.
@@ -494,6 +497,66 @@ With this, we are able to render exactly what we described in `index.html`. Addi
 
 # Building our submit.html template
 
+Finally, we have our submit page. We need to transform the data a bit to validate and see if the user has the correct categories. Once this validation is complete, there will be either a message saying that the user was incorrect and shows the proper categories, or has a success message and shows the time you completed the game in.
+
+```python
+@app.route('/submit', methods=['POST'])
+def submit():
+    #get the words from the draggable boxes
+    placements = request.form['placement']
+    #get the time it took
+    elapsed_time = request.form['elapsed_time']
+    #eliminate a floating comma
+    placements = placements[1:]
+    #create a list of words separated by commas
+    wordList = placements.split(",")
+    #split the solution into cateogires for checking
+    cat1 = wordList[0:4]
+    cat2 = wordList[4:8]
+    cat3 = wordList[8:12]
+    cat4 = wordList[12:16]
+    #check to see if the three categories are correct
+    status = [False, False, False]
+    #check for all permutations of words inside a category and permutations of categories with the solution key
+    if set(solution[0])==set(cat1):
+        status[0] = True
+    if set(solution[0])==set(cat2):
+        status[0] = True
+    if set(solution[0])==set(cat3):
+        status[0] = True
+    if set(solution[1])==set(cat1):
+        status[1] = True
+    if set(solution[1])==set(cat2):
+        status[1] = True
+    if set(solution[1])==set(cat3):
+        status[1] = True
+    if set(solution[2])==set(cat1):
+        status[2] = True
+    if set(solution[2])==set(cat2):
+        status[2] = True
+    if set(solution[2])==set(cat3):
+        status[2] = True
+    #check to see if the solution is correct
+    for check in status:
+        #if solution is incorrect, print an incorrect message and show solutions
+        if check == False:
+            message = "Incorrect. The solutions is the following. <br />"
+            i = 1
+            for cats in solution:
+                if i != 4:
+                    message = message + "Category " + str(i) + ": "
+                else:
+                    message = message + "Red-herrings: "
+                for words in cats:
+                    message = message + words + " "
+                message = message + '<br />'
+                i += 1
+            return message
+    #if the solution is correct, state the time it took to complete the game
+    return "Congratulations! You completed the game in " + elapsed_time 
+
+
+```
 
 
 # Rendering sumbit.html
