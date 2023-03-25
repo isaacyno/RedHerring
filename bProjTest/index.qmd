@@ -2,15 +2,15 @@
 title: "Red Herring Project"
 author: "Marc Andrew Choi, Isaac No, Derrick Chau"
 date: "2023-03-24"
-categories: [spacy, natural language processing, ui, project]
+categories: [webscraping, natural language processing, flask, project]
 ---
 # Introduction
-In this blog post, we will be recreating the game *Red Herring*, which is found on the App Store and Google Play. The objective of the game is to split 16 predetermined words into 3 hidden categories (each with four words) with the final four words being red herrings, i.e., words meant to trick the player that do not belong to any category. To complete this project, we will take advantage of a variety of technical components: natural language processing, SQL queries, web application with flask to create an interactive GUI, and webscraping. You can find a link to our GitHub repository [here](https://github.com/marcandrew-choi/pic16bproj).
+In this blog post, we will be recreating the game *Red Herring*, which is found on the App Store and Google Play. The objective of the game is to split 16 predetermined words into 3 hidden categories (each with four words) with the final four words being red herrings, i.e., words meant to trick the player that do not belong to any category. To complete this project, we will take advantage of a variety of technical components: natural language processing, web application with flask to create an interactive GUI, and webscraping. You can find a link to our GitHub repository [here](https://github.com/marcandrew-choi/pic16bproj).
 
 # Webscraping words
 As with most projects, we must first import necessary package. First, we need a list of words to play our game. Let us create a python file named `words_dictionary`, where we will import scrapy to assist in our webscraping. We will webscrape a site that contains the most common 3000 words in the English language.
 
-```
+```python
 import scrapy
 
 class wordsForGame(scrapy.Spider):
@@ -27,12 +27,12 @@ class wordsForGame(scrapy.Spider):
             yield{"word" : word}
 ```
 
-We're not going to show the list of words here because displaying 3000 words here would be insane, but we placed all of our words in a csv file called `words.csv`.
+We're not going to show the list of words here because displaying 3000 words here would be insane, but we placed all of our words in a csv file called `words.csv`. To implement the webscraping, we will define a definition `parse()`, where we will get the text of all the word, and pl
 
 # Finding similarity of words
 Let us create a python file named `wordSeparation.py`. We will need to import more packages that will help us with our next task. These packages include pandas and numpy, which will allow us to manipulate our data, as well as spacy, which will help us calculate the similarity scores of our words so that we can use these to create our word groups and categories for the game.
 
-```{python}
+```python
 import spacy
 import pandas as pd
 import numpy as np
@@ -43,7 +43,7 @@ spacy.cli.download("en_core_web_lg")
 
 We also need to import nltk as well as its accompanying downloads, which will handle our natural language processing requirements.
 
-```{python{}
+```python
 import nltk
 nltk.download('wordnet')
 nltk.download('omw-1.4')
@@ -52,7 +52,7 @@ nltk.download('abc')
 
 Let's test this out to see if our similarity scores. 
 
-```
+```python
 nlp = spacy.load('en_core_web_lg')  
 print("Enter two space-separated words")
 words = input()
@@ -71,7 +71,7 @@ As we can see, our two words--dog and cat--have a fairly high similarity score o
 
 Now that we know that this words correctly, let's now read our previous csv file to find the similarities between a random subset of words. 
 
-```{python}
+```python
 df = pd.read_csv("words.csv")
 n = 600
 df2 = df.sample(n)
@@ -80,9 +80,11 @@ dict2 = df2.to_dict('dict')
 df2
 ```
 
-With this, we will create an nxn array that will display the similarity score between one word and all of the other words in the list.
+![](words.png)
 
-```
+Since 3000 words took a bit too much computing power for our laptops, we randomly sampled 600 words to find the similarities of. With this, we will create an nxn array that will display the similarity score between one word and all of the other words in the list.
+
+```python
 nlp = spacy.load('en_core_web_lg')
 
 A = np.empty((n, n))
@@ -105,7 +107,7 @@ A
 
 The 1.0 represents the word that is being compared on its similarity with other words, where as the other numbers in each row represents the similarity between the previously specified word and the other words in this list. Our idea is, based on this array that we just found, a row of words that share high similarity scores amongst the words, and one of the top 5 words will indicate the category, while the other four words in these top 5 similarity scores will be the words to be appropriately placed in this category.
 
-```
+```python
 catagory_array = np.empty((n, cat_size), dtype=object)
 word_index = []
 for i in range(n):
@@ -126,12 +128,30 @@ cats
 
 ![](testcategories.png)
 
-As we see, the bolded words on the left (first column) represent the categories. If we look at 'many', we can see that there includes words such as 'majority', 'plenty', and 'often' which are similar words to its respective category, and we can use this as a category for our game.
+As we see, the bolded words on the left (first column) represent the categories. If we look at 'many', we can see that there includes words such as 'majority', 'plenty', and 'often' which are similar words to its respective category, and we can use this as a category for our game. Now, we can run the following code so that we can have all the categories for this dataset of words as well as its respective adjacency similarity scores from one word to the next, so that we can use and randomly select these categories when the user plays this game.
+
+```python
+catagory_array = np.empty((n, cat_size), dtype=object)
+print(len(catagory_array))
+for i in range(n):
+    for j in range(cat_size):
+        catagory_array[i][j] = df2["word"][highest_indices[i][j]]
+print(df2["word"][243])
+catagory_array[243]
+```
+```python
+word_buckets = pd.read_csv("categories.csv")
+similar_adj = pd.read_csv("adjacency.csv")
+word_array = word_buckets.to_numpy()
+adj_array = similar_adj.to_numpy()
+```
+
+As one can see, we put all of the categories into a csv file called `categories.csv` and its respective similarity scores in a csv called `adjacency.csv`.
 
 # Creating the user interface
-We will now begin our process to create our user interface. As with most projects, we must first import necessary packages into a python file named `app.py`. These packages are Flask, which will help us with the web development. We must also not forget to set `app = Flask(__name__)` so that we can properly initialization our application.
+We will now begin our process to create our user interface. As with most projects, we must first import necessary packages into a python file named `app.py`. These packages are Flask, which will help us with the web development.
 
-```
+```python
 from flask import Flask, render_template, request
 import random
 import pandas as pd
@@ -141,6 +161,368 @@ app = Flask(__name__)
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+# create df
+df = pd.read_csv("categories.csv")
+df = df.drop("Unnamed: 0", axis=1)
+df = df.reset_index(drop=True)
+df_len = len(df)
 ```
 
-# Building the base.html template
+We must also not forget to set `app = Flask(__name__)` so that we can properly initialization our application. Moreover, we are going to read the csv file with all of our categories so that we can randomly choose our categories for the game.
+
+# Building the index.html template
+To begin our Red Herring user interface building process, we will be defining let us first create a folder in the directory we seek to leave our project in, and create an html file called `index`. This will hold the base template, or structure, for our website, and it will also provide access to some customizations to our website that we will get into later. Let's go through our index.html template step by step. 
+
+```html
+<body>
+    <div class="container">
+      <div class="header">
+        <div>
+          <h1>Red Herring</h1>
+            <p>Drag the words into the boxes according to their categories.</p>
+            <p>Words that do not fit into a category are red herrings.</p>
+            <p> Use each word exactly once.</p>
+        </div>
+        <button class="start-button">Start</button>
+        <div class="timer hidden">
+          <span class="time-label">00:00</span>
+        </div>
+      </div>
+        
+        {% for i in range(3) %}
+            <center> Category {{i+1}} </center>
+            <div class="grid">
+                {% for _ in range(4) %}
+                    <div class="square"></div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+
+        <center> Red Herrings </center>
+        <div class="grid">
+            {% for _ in range(4) %}
+                <div class="square"></div>
+            {% endfor %}
+        </div>
+```
+
+The first block of code is written to display the instructions for our game so that the users are aware of how the game works. The second and third blocks of code is written so that we can display the boxes that the player needs to correctly place the words into, whether that be a category or red herrings. We also make sure to include a button so that users can press start to begin their game and their timer, as well as a submit button so that users can submit their answers. See the following for how we can write the rest of our `index.html` file.
+
+```html
+    <script>
+      var startButton = document.querySelector('.start-button');
+      var timer = document.querySelector('.timer');
+      var wordList = document.querySelector('.word-list');
+      var words = wordList.querySelectorAll('.word');
+      var squares = document.querySelectorAll('.square');
+      var submitButton = document.querySelector('.submit-button');
+      var form = document.querySelector('#form');
+      <!--var placements = [];-->
+
+      
+      
+                                              
+        var time = 0;
+        var minutes = 0;
+        var seconds = 0;
+        var timerInterval;
+
+        function startTimer() {
+          timerInterval = setInterval(function() {
+            time++;
+            minutes = Math.floor(time / 60);
+            seconds = time % 60;
+            timer.querySelector('.time-label').textContent = ('00' + minutes).slice(-2) + ':' + ('00' + seconds).slice(-2);
+          }, 1000);
+        }
+
+        function stopTimer() {
+          clearInterval(timerInterval);
+        }
+
+        function revealWords() {
+          wordList.classList.remove('hidden');
+          submitButton.classList.remove('hidden');
+          words.forEach(function(word) {
+            word.classList.remove('hidden');
+            word.classList.add('revealed');
+          });
+        }
+
+        function onWordDragStart(event) {
+          event.dataTransfer.setData('text/plain', event.target.textContent);
+          event.target.classList.add('dragging');
+        }
+
+        function onWordDragEnd(event) {
+          event.target.classList.remove('dragging');
+        }
+
+        function onSquareDragEnter(event) {
+          event.preventDefault();
+          event.target.classList.add('placeholder');
+        }
+
+        function onSquareDragOver(event) {
+          event.preventDefault();
+        }
+
+        function onSquareDragLeave(event) {
+          event.target.classList.remove('placeholder');
+        }
+
+        function onSquareDrop(event) {
+          event.preventDefault();
+          var word = event.dataTransfer.getData('text/plain');
+          var square = event.target;
+          var index = Array.from(squares).indexOf(square);
+          square.textContent = word;
+          wordList.querySelectorAll('.word').forEach(function(word) {
+            if (word.textContent === square.textContent) {
+              word.classList.add('hidden');
+            }
+          });
+          <!--categories[Math.floor(index / 4)][index % 4] = word;-->
+        }
+
+        function onSubmit(event) {
+          event.preventDefault();
+          var elapsedMinutes = minutes;
+          var elapsedSeconds = seconds;
+          stopTimer();
+          submitButton.disabled = true;
+          form.elements['elapsed_time'].value = elapsedMinutes + ':' + ('00' + elapsedSeconds).slice(-2);
+          form.submit();
+        }
+
+        startButton.addEventListener('click', function() {
+          startButton.classList.add('hidden');
+          timer.classList.remove('hidden');
+          wordList.classList.remove('hidden');
+          squares.forEach(function(square) {
+            square.classList.add('placeholder');
+            square.addEventListener('dragenter', onSquareDragEnter);
+            square.addEventListener('dragover', onSquareDragOver);
+            square.addEventListener('dragleave', onSquareDragLeave);
+            square.addEventListener('drop', onSquareDrop);
+          });
+          words.forEach(function(word) {
+            word.setAttribute('draggable', 'true');
+            word.addEventListener('dragstart', onWordDragStart);
+            word.addEventListener('dragend', onWordDragEnd);
+          });
+          revealWords();
+          startTimer();
+        });
+
+        submitButton.addEventListener('click', onSubmit);
+
+    </script>
+```
+
+This is an incredibly long block of code, so allow us to summarize what is going on here. To actually play the game, the player needs to move the words into appropriate categories, so we are writing code that allows these words to be draggable and place it into a box that is for a category. Once a player uses a word, the word is then blurred out so that it cannot be used again. Additionally, we added code so that a timer can be displayed as the user plays the game, which starts and stops accordingly when pressing the `start` and `submit` buttons. Additionally, we make sure that the words are hidden until the player presses the start button so that the user does not get an unfair advantage when playing the game. This essentially summarizes what we are attempting to accomplish with `index.html`, but we also include the customization of our web application.
+
+# Customizing our app
+To make sure our interface is not entirely boring or dull, we also included various stylistic choices to add more color and personality to our website. This was included at the beginning of our `index.html` file.
+
+```html
+<head>
+    <meta charset="utf-8">
+    <title>Red Herring</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f1f1f1;
+      }
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #fff;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+      .start-button {
+        padding: 10px 20px;
+        font-size: 20px;
+        font-weight: bold;
+        color: #fff;
+        background-color: #f00;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.2s ease-in-out;
+      }
+      .start-button:hover {
+        background-color: #c00;
+      }
+      .timer {
+        font-size: 40px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        grid-gap: 20px;
+        margin-bottom: 20px;
+      }
+      .square {
+        width: 100%;
+        height: 0;
+        padding-bottom: 20%;
+        position: relative;
+        background-color: #ccc;
+        border: 2px solid #999;
+        border-radius: 5px;
+      }
+      .square-content {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 30px;
+        font-weight: bold;
+      }
+      .word-list {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+      .word {
+        padding: 10px;
+        margin-bottom: 10px;
+        background-color: #fff;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        border-radius: 5px;
+        cursor: move;
+        user-select: none;
+      }
+      .word.placeholder {
+        opacity: 0.5;
+        background-color: #ccc;
+      }
+      .word.dragging {
+        opacity: 0.5;
+      }
+      .word.revealed {
+        filter: blur(0);
+      }
+      .word.hidden {
+        filter: blur(3px);
+      }
+      .submit-button {
+        padding: 10px 20px;
+        font-size: 20px;
+        font-weight: bold;
+        color: #fff;
+        background-color: #f00;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.2s ease-in-out;
+        float: right;
+      }
+      .submit-button:hover {
+        background-color: #c00;
+      }
+      .category {
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+      }
+      .time-label {
+        font-size: 30px;
+      }
+    </style>
+  </head>
+```
+
+Here, we choose aspects such as font for the words, background and button colors, size of the boxes, and more. If you seek to design a *Red Herring* game yourself, or any web application for that matter, feel free to mess around with the settings to create something that is much more your preference and style!
+
+# Rendering index.html
+To actually render our main page, we will return back to `app.py` to write a function that incorporates the use of the `render_template()` function.
+
+```python
+@app.route('/')
+def index():
+    #pick 3 random categories
+    allDiff = True
+    
+    while allDiff:
+        allwords = random.sample(range(df_len), 7)
+        cats = allwords[:3]
+        diff = allwords[3:]
+        solution = []
+        #pick 4 random words per category
+        count = 0
+        for n in cats:
+            catn = df.iloc[n]
+            randomindex = random.sample(range(10), 4)
+            #create solution
+            solution.append(catn[randomindex].to_list())
+        #pick 4 random different words from different topics as red herrings
+        rh = []
+        for k in diff:
+            redn = df.iloc[k]
+            randomindex = random.sample(range(10), 1)
+            rh.append(redn[randomindex].item())
+        solution.append(rh)
+        truewords = [item for sublist in solution for item in sublist]
+        #make sure all the words are unique
+        if len(truewords) == len(set(truewords)):
+            allDiff = False
+    #randomize list of words
+    random.shuffle(truewords)
+    return render_template('index.html', words=truewords)
+```
+
+With this, we are able to render exactly what we described in `index.html`. Additonally, in `index()`, we randomly choose the categories that will be represented in the game and four words in each category that will serve as the words that the player needs to correctly place, as well as four random words that will serve as our red herrings. We also randomize the order that the words are displayed in so that it does not make the game easy for the user. With this, we have the bulk of our game completed. 
+
+# Building our submit.html template
+
+
+
+# Rendering sumbit.html
+To actually render our submit page, we will return back to `app.py` to write a function
+
+# Playing the game
+Now that we have everything all settled and written to code, let's play the game to ensure that it works properly!
+
+![](prestart.png)
+
+As we can see here, when we first load the website, the words to be placed into categories/red herrings are blurred so that the player does not have an unfair advantage. 
+
+![](poststart.png)
+
+Upon pressing the start button, the words are now revealed, and the timer begins.
+
+![](finishedgame.png)
+
+Once we use a word and place it in a box, the word is then blurred to signify to the user that the words has already been used. Now let's complete this word puzzle.
+
+![](submitcorrect.png)
+
+As we can see, if our answers are correctly placed into their respective categories, we can press the submit button, and it will take us to the rendered submit page that displays a message of congratulations, alongside the time it took for the player to complete this game.
+
+![](submitwrong.png)
+
+On the other hand, if our answers are incorrectly placed, upon clicking the submit page, the user is now shown a losing message, as well as the solution to their game.
+
+# Concluding remarks and ethical ramifications
+Throughout this project, we've definitely realized how difficult it is to create a project in Python, especially that of a app. All in all, this was a huge learning experience for our group, as this was the first time we had to create a project with so many technical elements (webscraping, natural language processing, GUI) from scratch. While there were some elements to the project that we wish we could have implemented, we are happy with the product that we were able to create.
+
+An ethical ramification clearly arises: we are recreating an app that has already been made, so it may seem we are taking the work of the developers that this app originated from. However, as long as we do not distribute this project for use by the public, do not call it our own product, and not ask for monetary compensation, we should be able to navigate around this ethical dilemma in an appropriate manner, especially if we continue to attribute the original creators of the app and encourage users to support the original game. As long as we do this, this project is simply a fun word game for users to enjoy.
