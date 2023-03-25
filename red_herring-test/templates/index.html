@@ -159,11 +159,6 @@
         <div class="word hidden">{{ word }}</div>
         {% endfor %}
       </div>
-
-      <div class="solution hidden">
-        {% for word in realsolution %}
-        
-      </div>
        
       <button class="submit-button hidden">Submit</button>
       <form id="form" method="POST" action="{{ url_for('submit') }}" class="hidden">
