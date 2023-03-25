@@ -14,6 +14,6 @@ Here are some related links for the official game:
 
 [IOS](https://apps.apple.com/us/app/red-herring/id663596265)
 
-One can play our game by downloading the `red_herring-test` folder, navegating to this folder on the terminal, and typing `flask run`. 
+One can play our game by downloading the `red_herring-test` folder, navigating to this folder on the terminal, and typing `flask run`. 
 
 A thorough description of this entire project can be read on [this](https://chauderrick.quarto.pub/derricks-blog/posts/redherring/) blog post.
