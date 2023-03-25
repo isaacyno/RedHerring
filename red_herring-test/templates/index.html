@@ -159,7 +159,12 @@
         <div class="word hidden">{{ word }}</div>
         {% endfor %}
       </div>
+
+      <div class="solution hidden">
+        {% for word in realsolution %}
         
+      </div>
+       
       <button class="submit-button hidden">Submit</button>
       <form id="form" method="POST" action="{{ url_for('submit') }}" class="hidden">
         
@@ -176,7 +181,6 @@
       var squares = document.querySelectorAll('.square');
       var submitButton = document.querySelector('.submit-button');
       var form = document.querySelector('#form');
-      <!--var placements = [];-->
 
       
       
@@ -245,12 +249,19 @@
         }
 
         function onSubmit(event) {
+          form.elements['sol'].value = realsolution
           event.preventDefault();
           var elapsedMinutes = minutes;
           var elapsedSeconds = seconds;
           stopTimer();
           submitButton.disabled = true;
           form.elements['elapsed_time'].value = elapsedMinutes + ':' + ('00' + elapsedSeconds).slice(-2);
+          let tempSol = document.getElementsByClassName("square");
+          let placements = ''
+          for (let i = 0; i < tempSol.length; i++) {
+            placements = placements + ',' + tempSol[i].innerHTML;
+          }
+          form.elements['placement'].value = placements
           form.submit();
         }
 
