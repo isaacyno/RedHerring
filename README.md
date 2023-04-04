@@ -8,7 +8,7 @@ Our ultimate goal was to emulate the word game called Red Herring.
 
 Here are some related links for the official game:
 
-[Offical Site](http://www.blueoxfamilygames.com/red-herring-press-kit)
+[Official Site](http://www.blueoxfamilygames.com/red-herring-press-kit)
 
 [Android](https://play.google.com/store/apps/details?id=com.BlueOxTech.RedHerring&hl=en_US&gl=US)
 
